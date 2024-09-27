@@ -1,4 +1,4 @@
-import { Marker, MarkerClusterer } from "@googlemaps/markerclusterer"
+import { Marker, MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer"
 import { AdvancedMarker, useMap } from "@vis.gl/react-google-maps"
 import { useEffect, useRef, useState } from "react"
 
@@ -13,7 +13,9 @@ export default function Markers({points}:Props){
     useEffect(()=>{
         if(!map) return //Caso não tenha o mapa, não faça nada
         if(!clusterer.current){ //Caso não tenha um cluster, vamos configurá=lo pela primeira vez
-            clusterer.current = new MarkerClusterer({ map })
+            clusterer.current = new MarkerClusterer({ map, algorithm: new SuperClusterAlgorithm({
+                radius: 100, // Aumente o valor para expandir o range de agrupamento
+              }), })
         } 
     }, [map])
 
@@ -36,7 +38,6 @@ export default function Markers({points}:Props){
     }
     
     const setStringDepoforMarkers = (listaMarcadoresDoCluster: Marker[] | undefined) => {
-        console.log(listaMarcadoresDoCluster[0].position.lat)
         const arrayFiltrado = []
         listaMarcadoresDoCluster?.forEach(marcador => {
             points.forEach(ponto => {
@@ -44,12 +45,12 @@ export default function Markers({points}:Props){
                 if(ponto.lat === posicao.lat && ponto.lng === posicao.lng) arrayFiltrado.push(ponto.depo)
             })
         })
-        console.log(arrayFiltrado)
         return arrayFiltrado.join('')
 
     }
     
     useEffect(()=>{
+
         
         clusterer.current?.clearMarkers() //Sempre que os 'markers' mudarem, vamos excluir os markers que estavam apresentes no cluster e...
         
@@ -58,12 +59,22 @@ export default function Markers({points}:Props){
                 return new google.maps.Marker({
                     position,
                     icon: {
-                        url: `https://quickchart.io/wordcloud?text=${setStringDepoforMarkers(markers)}&maxNumWords=20&fontWeight=bold&colors=["000"]&padding=1&case=upper&rotation=0`,
-                        scaledSize: new google.maps.Size(90, 90), // Tamanho do ícone
+                        url: `https://quickchart.io/wordcloud?text=${setStringDepoforMarkers(markers)}&maxNumWords=20&fontWeight=bold&colors=["000"]&padding=1&case=upper&rotation=0&width=120&height=120`,
+                        // scaledSize: new google.maps.Size(50, 50), // Tamanho do ícone
+                        origin: new google.maps.Point(0, 0),
+                        // anchor: new google.maps.Point(150,150),
                     },
+                    optimized:false,
+                    shape: {
+                        type: 'circle',
+                        coords: [75,75,10]
+                    }
                 });
             }
-        }})
+        },
+        algorithm: new SuperClusterAlgorithm({
+            radius: 210, // Aumente o valor para expandir o range de agrupamento
+          }),})
         
         clusterer.current?.addMarkers(Object.values(marcadores)) //adicionamos os marcadores novos presentes no novo estado de 'markers'
         //Note que, 'markers' é um objeto, por isso usamos o 'Object.values' para pegar as instancias Marker propriamete dita
@@ -79,8 +90,11 @@ export default function Markers({points}:Props){
             ref={marker => {
                 setMarkerRef(marker, point.key)}}> 
             {/* A função callback do atributo 'ref' recebe como argumento o própro elemento que o 'ref' está referenciando. É uma forma de acessá-lo em outra função diretamente */}
-                <span>
-                    <img src={`https://quickchart.io/wordcloud?text=${point.depo}&maxNumWords=20&width=110&height=110&fontWeight=bold&colors=["000"]&padding=0&case=upper&rotation=0`} alt="" />
+                <span style={{
+                    width: '50rem',
+                    height: '50rem'
+                }}>
+                    <img src={`https://quickchart.io/wordcloud?text=${point.depo}&maxNumWords=20&width=120&height=120&fontWeight=bold&colors=["000"]&padding=0&case=upper&rotation=0`} alt="" />
                 </span>
         </AdvancedMarker>)
     }
