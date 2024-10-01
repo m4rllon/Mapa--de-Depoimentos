@@ -11,7 +11,7 @@ export default function HomeMap(){
             defaultCenter={{lat: -15.885806, lng: -47.989097}} 
             defaultZoom={10} 
             minZoom={5}
-            maxZoom={13}
+            // maxZoom={13}
             mapId={mapId}>
                 <Markers points={formatted}/>
             </Map>

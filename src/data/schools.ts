@@ -1,6 +1,6 @@
 type RawSchool = [string, number, number, string]
 
-type School = {
+export type School = {
     key: string;
     name: string;
     lat: number;
