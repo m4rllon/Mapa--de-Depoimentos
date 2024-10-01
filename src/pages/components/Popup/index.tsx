@@ -1,28 +1,32 @@
-import React, { useEffect, useRef } from "react";
+import { useState } from "react"
+import { School } from "../../../data/schools"
+import styles from './styles.module.css'
 
-const PopupMap: React.FC = () => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  let popup
+interface props {
+  listaDePontos: School[]
+}
 
-  useEffect(() => {
-    if (!window.google || !mapRef.current) return;
+export const PopupContent = ({listaDePontos, closePopup}:props) => {
+  const [index, setIndex] = useState(0)
 
-    const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat: -33.9, lng: 151.1 },
-      zoom: 10,
-    });
+  const antes = () => {
+    if(index - 1 >= 0) {
+      const newIndex = index - 1
+      setIndex(newIndex)
+    }
+  }
+  const depois = () => {
+    if(index+1 < listaDePontos.length){
+      const newIndex = index + 1
+      setIndex(newIndex)
+    }
+  }
 
-    const content = document.createElement("div");
-    content.innerText = "Hello World!";
-    content.id = "content";
-    popup = new Popup(
-      new window.google.maps.LatLng(-33.866, 151.196),
-      content
-    );
-    popup.setMap(map);
-  }, []);
-
-  return <div ref={mapRef} id="map" style={{ width: "100%", height: "500px" }} />;
-};
-
-export default PopupMap;
+  return <div className={styles.contianer}>
+    <button onClick={() => closePopup( prev => !prev)}>Fechar</button>
+    <h1>{listaDePontos[index].name}</h1>
+    <p>{listaDePontos[index].depo}</p>
+    <button onClick={antes}>Antes</button>
+    <button onClick={depois}>Depois</button>
+  </div>
+}
