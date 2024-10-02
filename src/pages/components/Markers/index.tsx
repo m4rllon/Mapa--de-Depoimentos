@@ -48,12 +48,11 @@ export default function Markers({points}:Props){
     useEffect(()=>{
 
         clusterer.current?.clearMarkers() //Sempre que os 'markers' mudarem, vamos excluir os markers que estavam apresentes no cluster e...
-        
         clusterer.current = new MarkerClusterer(
             {map,
 
             algorithm: new SuperClusterAlgorithm({
-                radius: 310, // Aumente o valor para expandir o range de agrupamento
+                radius: 700, // Aumente o valor para expandir o range de agrupamento
             }),
 
             onClusterClick: (_, cluster) => {
@@ -89,7 +88,7 @@ export default function Markers({points}:Props){
                     return new google.maps.Marker({
                         position,
                         icon: {
-                            url: `https://quickchart.io/wordcloud?text=${depoimentoFormatado}&fontScale=16&maxNumWords=20&fontWeight=bold&colors=["000"]&padding=3&case=upper&rotation=0&width=140&height=140`,
+                            url: `https://quickchart.io/wordcloud?text=${depoimentoFormatado}&fontScale=16&maxNumWords=20&fontWeight=bold&fontFamily=sanf&colors=["000"]&padding=8&case=upper&rotation=0&width=350&height=200`,
                             origin: new google.maps.Point(0, 0),
                         },
                         optimized:false,
@@ -97,7 +96,6 @@ export default function Markers({points}:Props){
                 }
             },
         })
-        
         clusterer.current?.addMarkers(Object.values(marcadores)) //adicionamos os marcadores novos presentes no novo estado de 'markers'
         //Note que, 'markers' é um objeto, por isso usamos o 'Object.values' para pegar as instancias Marker propriamete dita
         // console.log(clusterer.current.clusters)
@@ -110,19 +108,38 @@ export default function Markers({points}:Props){
         } 
     }, [statusPopup])
 
+    const openPopup = (ponto:point) => {
+        popup?.setMap(null)
+        if(ponto){
+            const content = document.createElement("div");
+            content.id = "content";
+            const root = createRoot(content)
+            root.render(<PopupContent listaDePontos={[ponto]} closePopup={setStatusPopup}/>)
+            const newPopup = new Popup(
+                new google.maps.LatLng(ponto.lat, ponto.lng),
+                content
+            )
+            setPopup(newPopup)
+            newPopup.setMap(map)
+        }
+    }
+
     return <>
     {
         points.map(point => <AdvancedMarker 
             position={point} 
             key={point.key}
             ref={marker => {
-                setMarkerRef(marker, point.key)}}> 
-            {/* A função callback do atributo 'ref' recebe como argumento o própro elemento que o 'ref' está referenciando. É uma forma de acessá-lo em outra função diretamente */}
+                // A função callback do atributo 'ref' recebe como argumento o própro elemento que o 'ref' está referenciando. É uma forma de acessá-lo em outra função diretamente
+                setMarkerRef(marker, point.key)}}
+            onClick={() => openPopup(point)}> 
+
                 <span style={{
                     width: '50rem',
                     height: '50rem'
                 }}>
-                    <img src={`https://quickchart.io/wordcloud?text=${point.depo}&maxNumWords=20&width=120&height=120&fontWeight=bold&colors=["000"]&padding=0&case=upper&rotation=0`} alt="" />
+                    <img src={`https://quickchart.io/wordcloud?text=${point.depo}&fontScale=16&maxNumWords=20&fontWeight=bold&fontFamily=sanf&colors=["000"]&padding=8&case=upper&rotation=0&width=330&height=180`} alt="Depoimento" />
+                    {/* <img src={`https://quickchart.io/wordcloud?text=${point.depo}&maxNumWords=20&width=120&height=120&fontWeight=bold&colors=["000"]&padding=0&case=upper&rotation=0`} alt="" /> */}
                 </span>
         </AdvancedMarker>)
     }
