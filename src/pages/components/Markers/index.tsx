@@ -4,15 +4,68 @@ import { useEffect, useRef, useState } from "react"
 import { getPointsWithCluster } from "../../../utils/getPointsWithCluster"
 import { getStringFiltered } from "../../../utils/filterStrings"
 import { setStringDepo } from "../../../utils/setStringDepo"
-import { Popup } from "../../../classes/Popup"
 import { PopupContent } from "../Popup"
 import { createRoot } from "react-dom/client"
 
 type point = google.maps.LatLngLiteral & {key:string, name:string, depo:string}
 type Props = {points: point[]}
 
+
 export default function Markers({points}:Props){
-    const map = useMap() //Acessar o próprio mapa
+    class Popup extends window.google.maps.OverlayView {
+        position: google.maps.LatLng;
+        containerDiv: HTMLDivElement;
+    
+        constructor(position: google.maps.LatLng, content: HTMLElement) {
+          super();
+          this.position = position;
+          content.classList.add("popup-bubble");
+    
+          const bubbleAnchor = document.createElement("div");
+          bubbleAnchor.classList.add("popup-bubble-anchor");
+          bubbleAnchor.appendChild(content);
+    
+          this.containerDiv = document.createElement("div");
+          this.containerDiv.classList.add("popup-container");
+          this.containerDiv.appendChild(bubbleAnchor);
+    
+          Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
+        }
+    
+        onAdd() {
+          this.getPanes()!.floatPane.appendChild(this.containerDiv);
+        }
+    
+        onRemove() {
+          if (this.containerDiv.parentElement) {
+            this.containerDiv.parentElement.removeChild(this.containerDiv);
+          }
+        }
+    
+        draw() {
+          const divPosition = this.getProjection()?.fromLatLngToDivPixel(
+            this.position
+          );
+    
+          if (!divPosition) return;
+    
+          const display =
+            Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000
+              ? "block"
+              : "none";
+    
+          if (display === "block") {
+            this.containerDiv.style.left = divPosition.x + "px";
+            this.containerDiv.style.top = divPosition.y + "px";
+          }
+    
+          if (this.containerDiv.style.display !== display) {
+            this.containerDiv.style.display = display;
+          }
+        }
+      }
+
+      const map = useMap() //Acessar o próprio mapa
     const [marcadores, setMarcadores] = useState<{[key:string]: Marker}>({}) //Acessar todos os marcadores presentes no mapa
     const clusterer = useRef<MarkerClusterer | null>(null) //Acessar o cluster de marcadores
     const [statusPopup, setStatusPopup] = useState<boolean>(true)
