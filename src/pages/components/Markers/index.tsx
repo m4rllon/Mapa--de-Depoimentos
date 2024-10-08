@@ -95,7 +95,19 @@ export default function Markers({points}:Props){
                 return newMarkers
             }
         })
+    }
 
+    const getClickCoordinate = (event: google.maps.MapMouseEvent) => {
+       // @ts-expect-error: Unreachable 
+        const X = event.domEvent.clientX
+        // @ts-expect-error: Unreachable
+        const Y = event.domEvent.clientY
+        const x = (event.domEvent.target as HTMLImageElement).getBoundingClientRect().left
+        const y = (event.domEvent.target as HTMLImageElement).getBoundingClientRect().top
+        return {
+            x: X - x,
+            y: Y - y,
+        }
     }
 
     useEffect(()=>{
@@ -108,9 +120,18 @@ export default function Markers({points}:Props){
                 radius: 700, // Aumente o valor para expandir o range de agrupamento
             }),
 
-            onClusterClick: (_, cluster) => {
-                popup?.setMap(null)
+            onClusterClick: (event, cluster) => {
+                // X = event.domEvent.clientX (Posição do click na coordenada X em relação a toda a tela)
+                // Y = event.domEvent.clientY (Posição do click na coordenada Y em relação a toda a tela)
 
+                // x = (event.domEvent.target as HTMLImageElement).getBoundingClientRect().left (Posição em X do ponto x = 0 da imagem até o ponto X = 0 da tela como um todo)
+                // y = (event.domEvent.target as HTMLImageElement).getBoundingClientRect().top (Posição em Y do ponto y = 0 da imagem até o ponto Y = 0 da tela como um todo)
+
+                // Coordenada X do click em relação ao ícone: X - x
+                // Coordenada Y do click em relação ao ícone: Y - y
+                console.log("Coordenada do click: " , getClickCoordinate(event))
+                
+                popup?.setMap(null)
                 const listaDePontos = getPointsWithCluster(points, cluster.markers)
                 const posicaoDoCluster = {lat: cluster.position.lat(), lng: cluster.position.lng()}
 
@@ -144,6 +165,10 @@ export default function Markers({points}:Props){
                             url: `https://quickchart.io/wordcloud?text=${depoimentoFormatado}&fontScale=16&maxNumWords=20&fontWeight=bold&fontFamily=sanf&colors=["000"]&padding=8&case=upper&rotation=0&width=350&height=200`,
                             origin: new google.maps.Point(0, 0),
                         },
+                        shape: {
+                            coords: [0, 0, 350, 200], // Coordenadas do retângulo (x1, y1, x2, y2)
+                            type: 'rect',
+                          },
                         optimized:false,
                     });
                 }
