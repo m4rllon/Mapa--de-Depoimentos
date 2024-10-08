@@ -6,10 +6,10 @@ import { getStringFiltered } from "../../../utils/filterStrings"
 import { setStringDepo } from "../../../utils/setStringDepo"
 import { PopupContent } from "../Popup"
 import { createRoot } from "react-dom/client"
+import IconClusters from "../IconClusters"
 
 type point = google.maps.LatLngLiteral & {key:string, name:string, depo:string}
 type Props = {points: point[]}
-
 
 export default function Markers({points}:Props){
     class Popup extends window.google.maps.OverlayView {
@@ -63,9 +63,10 @@ export default function Markers({points}:Props){
             this.containerDiv.style.display = display;
           }
         }
-      }
+    }
 
-      const map = useMap() //Acessar o próprio mapa
+
+    const map = useMap() //Acessar o próprio mapa
     const [marcadores, setMarcadores] = useState<{[key:string]: Marker}>({}) //Acessar todos os marcadores presentes no mapa
     const clusterer = useRef<MarkerClusterer | null>(null) //Acessar o cluster de marcadores
     const [statusPopup, setStatusPopup] = useState<boolean>(true)
@@ -156,20 +157,18 @@ export default function Markers({points}:Props){
 
             renderer: { //Criando novo cluster com ícone personalizado
                 render: ({ position, markers }) => {
-                    const listaDePontosDoCluster = getPointsWithCluster(points, markers)
-                    const depoimento = setStringDepo(listaDePontosDoCluster)
-                    const depoimentoFormatado = getStringFiltered(depoimento)
-                    return new google.maps.Marker({
+                    // const listaDePontosDoCluster = getPointsWithCluster(points, markers)
+                    // const depoimento = setStringDepo(listaDePontosDoCluster)
+                    // const depoimentoFormatado = getStringFiltered(depoimento)
+
+                    const imageIcon = document.createElement('div')
+                    imageIcon.id = 'content'
+                    const root = createRoot(imageIcon)
+                    root.render(<IconClusters />)
+
+                    return new google.maps.marker.AdvancedMarkerElement({
                         position,
-                        icon: {
-                            url: `https://quickchart.io/wordcloud?text=${depoimentoFormatado}&fontScale=16&maxNumWords=20&fontWeight=bold&fontFamily=sanf&colors=["000"]&padding=8&case=upper&rotation=0&width=350&height=200`,
-                            origin: new google.maps.Point(0, 0),
-                        },
-                        shape: {
-                            coords: [0, 0, 350, 200], // Coordenadas do retângulo (x1, y1, x2, y2)
-                            type: 'rect',
-                          },
-                        optimized:false,
+                        content: imageIcon,
                     });
                 }
             },
