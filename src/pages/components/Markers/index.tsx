@@ -65,7 +65,6 @@ export default function Markers({points}:Props){
         }
     }
 
-
     const map = useMap() //Acessar o próprio mapa
     const [marcadores, setMarcadores] = useState<{[key:string]: Marker}>({}) //Acessar todos os marcadores presentes no mapa
     const clusterer = useRef<MarkerClusterer | null>(null) //Acessar o cluster de marcadores
@@ -109,6 +108,23 @@ export default function Markers({points}:Props){
             x: X - x,
             y: Y - y,
         }
+    }
+
+    const getWordCloudDataWithString = (text: string) => {
+        const wordsArray = text.split(' ')
+        const wordCloudData:({text:string, value:number}[]) = []
+        
+        wordsArray.forEach(wordTarget => {
+            let count = 0
+            wordsArray.forEach((word) => {
+                if (wordTarget === word) count = count+1
+            })
+            const inWordcloud = wordCloudData.some((wordCloud) => wordCloud.text === wordTarget)
+            if(!inWordcloud) wordCloudData.push({text:wordTarget, value: count*1000})
+            else wordCloudData.forEach(wordCloud => {if(wordCloud.text === wordTarget) wordCloud = {text:wordCloud.text, value: count}})
+        })
+
+        return wordCloudData.sort((a, b) => b.value - a.value).slice(0, 20)
     }
 
     useEffect(()=>{
@@ -157,14 +173,16 @@ export default function Markers({points}:Props){
 
             renderer: { //Criando novo cluster com ícone personalizado
                 render: ({ position, markers }) => {
-                    // const listaDePontosDoCluster = getPointsWithCluster(points, markers)
-                    // const depoimento = setStringDepo(listaDePontosDoCluster)
-                    // const depoimentoFormatado = getStringFiltered(depoimento)
+                    const listaDePontosDoCluster = getPointsWithCluster(points, markers)
+                    const depoimento = setStringDepo(listaDePontosDoCluster)
+                    const depoimentoFormatado = getStringFiltered(depoimento)
+                    // const dataForWordCloud = getWordCloudDataWithString(depoimentoFormatado)
+                    const dataWordCloud = getWordCloudDataWithString(depoimentoFormatado)
 
                     const imageIcon = document.createElement('div')
                     imageIcon.id = 'content'
                     const root = createRoot(imageIcon)
-                    root.render(<IconClusters />)
+                    root.render(<IconClusters data={dataWordCloud}/>)
 
                     return new google.maps.marker.AdvancedMarkerElement({
                         position,
