@@ -97,19 +97,6 @@ export default function Markers({points}:Props){
         })
     }
 
-    const getClickCoordinate = (event: google.maps.MapMouseEvent) => {
-       // @ts-expect-error: Unreachable 
-        const X = event.domEvent.clientX
-        // @ts-expect-error: Unreachable
-        const Y = event.domEvent.clientY
-        const x = (event.domEvent.target as HTMLImageElement).getBoundingClientRect().left
-        const y = (event.domEvent.target as HTMLImageElement).getBoundingClientRect().top
-        return {
-            x: X - x,
-            y: Y - y,
-        }
-    }
-
     const getWordCloudDataWithString = (text: string) => {
         const wordsArray = text.split(' ')
         const wordCloudData:({text:string, value:number}[]) = []
@@ -120,15 +107,17 @@ export default function Markers({points}:Props){
                 if (wordTarget === word) count = count+1
             })
             const inWordcloud = wordCloudData.some((wordCloud) => wordCloud.text === wordTarget)
-            if(!inWordcloud) wordCloudData.push({text:wordTarget, value: count*1000})
+            if(!inWordcloud) wordCloudData.push({text:wordTarget, value: count})
             else wordCloudData.forEach(wordCloud => {if(wordCloud.text === wordTarget) wordCloud = {text:wordCloud.text, value: count}})
         })
 
-        return wordCloudData.sort((a, b) => b.value - a.value).slice(0, 20)
+        const wordCloudDataSort = wordCloudData.sort((a, b) => b.value - a.value)
+        const wordCloudDataSliced = wordCloudDataSort.slice(0, 20)
+
+        return wordCloudDataSliced
     }
 
     useEffect(()=>{
-
         clusterer.current?.clearMarkers() //Sempre que os 'markers' mudarem, vamos excluir os markers que estavam apresentes no cluster e...
         clusterer.current = new MarkerClusterer(
             {map,
@@ -138,37 +127,27 @@ export default function Markers({points}:Props){
             }),
 
             onClusterClick: (event, cluster) => {
-                // X = event.domEvent.clientX (Posição do click na coordenada X em relação a toda a tela)
-                // Y = event.domEvent.clientY (Posição do click na coordenada Y em relação a toda a tela)
+                // popup?.setMap(null)
+                // const listaDePontos = getPointsWithCluster(points, cluster.markers)
+                // const posicaoDoCluster = {lat: cluster.position.lat(), lng: cluster.position.lng()}
 
-                // x = (event.domEvent.target as HTMLImageElement).getBoundingClientRect().left (Posição em X do ponto x = 0 da imagem até o ponto X = 0 da tela como um todo)
-                // y = (event.domEvent.target as HTMLImageElement).getBoundingClientRect().top (Posição em Y do ponto y = 0 da imagem até o ponto Y = 0 da tela como um todo)
-
-                // Coordenada X do click em relação ao ícone: X - x
-                // Coordenada Y do click em relação ao ícone: Y - y
-                console.log("Coordenada do click: " , getClickCoordinate(event))
-                
-                popup?.setMap(null)
-                const listaDePontos = getPointsWithCluster(points, cluster.markers)
-                const posicaoDoCluster = {lat: cluster.position.lat(), lng: cluster.position.lng()}
-
-                if(cluster.markers){
-                    const content = document.createElement("div");
-                    content.id = "content";
+                // if(cluster.markers){
+                //     const content = document.createElement("div");
+                //     content.id = "content";
                     
-                    const root = createRoot(content)
+                //     const root = createRoot(content)
 
-                    root.render(<PopupContent listaDePontos={listaDePontos} closePopup={setStatusPopup}/>)
+                //     root.render(<PopupContent listaDePontos={listaDePontos} closePopup={setStatusPopup}/>)
 
-                    const newPopup = new Popup(
-                        new google.maps.LatLng(posicaoDoCluster.lat, posicaoDoCluster.lng),
-                        content
-                    )
+                //     const newPopup = new Popup(
+                //         new google.maps.LatLng(posicaoDoCluster.lat, posicaoDoCluster.lng),
+                //         content
+                //     )
 
-                    setPopup(newPopup)
+                //     setPopup(newPopup)
 
-                    newPopup.setMap(map)
-                }
+                //     newPopup.setMap(map)
+                // }
             },
 
             renderer: { //Criando novo cluster com ícone personalizado
@@ -176,17 +155,19 @@ export default function Markers({points}:Props){
                     const listaDePontosDoCluster = getPointsWithCluster(points, markers)
                     const depoimento = setStringDepo(listaDePontosDoCluster)
                     const depoimentoFormatado = getStringFiltered(depoimento)
-                    // const dataForWordCloud = getWordCloudDataWithString(depoimentoFormatado)
                     const dataWordCloud = getWordCloudDataWithString(depoimentoFormatado)
 
+
                     const imageIcon = document.createElement('div')
+                    imageIcon.style.width = '350px'
+                    imageIcon.style.height = '200px'
                     imageIcon.id = 'content'
                     const root = createRoot(imageIcon)
                     root.render(<IconClusters data={dataWordCloud}/>)
-
                     return new google.maps.marker.AdvancedMarkerElement({
                         position,
                         content: imageIcon,
+                        gmpClickable: true,
                     });
                 }
             },
@@ -234,7 +215,6 @@ export default function Markers({points}:Props){
                     height: '50rem'
                 }}>
                     <img src={`https://quickchart.io/wordcloud?text=${point.depo}&fontScale=16&maxNumWords=20&fontWeight=bold&fontFamily=sanf&colors=["000"]&padding=8&case=upper&rotation=0&width=330&height=180`} alt="Depoimento" />
-                    {/* <img src={`https://quickchart.io/wordcloud?text=${point.depo}&maxNumWords=20&width=120&height=120&fontWeight=bold&colors=["000"]&padding=0&case=upper&rotation=0`} alt="" /> */}
                 </span>
         </AdvancedMarker>)
     }
