@@ -126,7 +126,7 @@ export default function Markers({points}:Props){
                 radius: 700, // Aumente o valor para expandir o range de agrupamento
             }),
 
-            onClusterClick: (event, cluster) => {
+            onClusterClick: () => {
                 // popup?.setMap(null)
                 // const listaDePontos = getPointsWithCluster(points, cluster.markers)
                 // const posicaoDoCluster = {lat: cluster.position.lat(), lng: cluster.position.lng()}
@@ -157,13 +157,13 @@ export default function Markers({points}:Props){
                     const depoimentoFormatado = getStringFiltered(depoimento)
                     const dataWordCloud = getWordCloudDataWithString(depoimentoFormatado)
 
-
                     const imageIcon = document.createElement('div')
                     imageIcon.style.width = '350px'
                     imageIcon.style.height = '200px'
                     imageIcon.id = 'content'
                     const root = createRoot(imageIcon)
-                    root.render(<IconClusters data={dataWordCloud}/>)
+                    root.render(<IconClusters data={dataWordCloud} points={listaDePontosDoCluster}/>)
+
                     return new google.maps.marker.AdvancedMarkerElement({
                         position,
                         content: imageIcon,
