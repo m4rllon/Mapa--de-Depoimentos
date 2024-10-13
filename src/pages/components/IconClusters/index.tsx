@@ -5,6 +5,7 @@ import { School } from '../../../data/schools';
 interface props {
     data: {text:string, value:number}[]
     points: School[]
+    colors: string[]
 }
 
 type wordCloudProps = {
@@ -29,7 +30,7 @@ type wordCloudProps = {
     yoff?: number,
 }
 
-const IconClusters = ({data, points}:props) => {
+const IconClusters = ({data, points, colors}:props) => {
     const [wordTarget, setWordTarget] = useState<wordCloudProps | null>(null)
     const [popupStatus, setPopupStatus] = useState(false)
     const [index, setIndex] = useState(0)
@@ -48,8 +49,6 @@ const IconClusters = ({data, points}:props) => {
       }
     }
 
-    const colors = ['#333333', '#000000', '#131212', '#222221'];
-
     return <div style={{position:'relative'}}>
     <WordCloud 
     data={data} 
@@ -58,7 +57,6 @@ const IconClusters = ({data, points}:props) => {
     fontSize={()=> 24}
     fontWeight={()=> 'bold'}
     onWordClick={(_, b)=> {
-        console.log(b)
         setWordTarget(b)
         setPopupStatus(!popupStatus)
     }}
@@ -79,7 +77,8 @@ const IconClusters = ({data, points}:props) => {
                 top: (wordTarget.y) ? wordTarget.y+120 : 120, 
                 left: wordTarget.x,
                 borderRadius: '16px',
-                padding: '16px'
+                padding: '16px',
+                zIndex: 9999, /* Valor alto para sobrepor as outras divs */
             }
         }>
             <span>

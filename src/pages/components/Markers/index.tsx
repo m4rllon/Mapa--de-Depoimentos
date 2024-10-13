@@ -6,7 +6,8 @@ import { getStringFiltered } from "../../../utils/filterStrings"
 import { setStringDepo } from "../../../utils/setStringDepo"
 import { PopupContent } from "../Popup"
 import { createRoot } from "react-dom/client"
-import IconClusters from "../IconClusters"
+import WordCloud from "react-d3-cloud"
+import getWordCloudDataWithString from "../../../utils/getWordCloudDataWithString"
 
 type point = google.maps.LatLngLiteral & {key:string, name:string, depo:string}
 type Props = {points: point[]}
@@ -66,17 +67,28 @@ export default function Markers({points}:Props){
     }
 
     const map = useMap() //Acessar o próprio mapa
-    const [marcadores, setMarcadores] = useState<{[key:string]: Marker}>({}) //Acessar todos os marcadores presentes no mapa
+    const [ marcadores, setMarcadores ] = useState<{[key:string]: Marker}>({}) //Acessar todos os marcadores presentes no mapa
     const clusterer = useRef<MarkerClusterer | null>(null) //Acessar o cluster de marcadores
-    const [statusPopup, setStatusPopup] = useState<boolean>(true)
-    const [popup, setPopup] = useState<Popup | null>(null)
+    const [ statusPopup, setStatusPopup ] = useState<boolean>(true)
+    const [ popup, setPopup ] = useState<Popup | null>(null)
+    const [ wordTarget, setWordTarget ] = useState(null)
+    const [ wordPinTarget, setWordPinTarget ] = useState(null)
+    const [ clusterTarget, setClusterTarget ] = useState(null)
+    
+    const [ clusters, setClusters ] = useState(clusterer.current?.clusters)
+    const [ alonePopup, setAlonePopup ] = useState()
+
+    const colors = ['#333333', '#000000', '#131212', '#222221'];
 
     useEffect(()=>{
         if(!map) return //Caso não tenha o mapa, não faça nada
         if(!clusterer.current){ //Caso não tenha um cluster, vamos configurá=lo pela primeira vez
-            clusterer.current = new MarkerClusterer({ map, algorithm: new SuperClusterAlgorithm({
-                radius: 100, // Aumente o valor para expandir o range de agrupamento
-              }), })
+            clusterer.current = new MarkerClusterer({ 
+                map, 
+                algorithm: new SuperClusterAlgorithm({
+                    radius: 700, // Aumente o valor para expandir o range de agrupamento
+                }),
+            })
         } 
     }, [map])
 
@@ -97,24 +109,30 @@ export default function Markers({points}:Props){
         })
     }
 
-    const getWordCloudDataWithString = (text: string) => {
-        const wordsArray = text.split(' ')
-        const wordCloudData:({text:string, value:number}[]) = []
-        
-        wordsArray.forEach(wordTarget => {
-            let count = 0
-            wordsArray.forEach((word) => {
-                if (wordTarget === word) count = count+1
-            })
-            const inWordcloud = wordCloudData.some((wordCloud) => wordCloud.text === wordTarget)
-            if(!inWordcloud) wordCloudData.push({text:wordTarget, value: count})
-            else wordCloudData.forEach(wordCloud => {if(wordCloud.text === wordTarget) wordCloud = {text:wordCloud.text, value: count}})
-        })
-
-        const wordCloudDataSort = wordCloudData.sort((a, b) => b.value - a.value)
-        const wordCloudDataSliced = wordCloudDataSort.slice(0, 20)
-
-        return wordCloudDataSliced
+    const buildContent = (data:{text:string, value:number}[], cluster) => {
+        const imageIcon = document.createElement('div')
+        imageIcon.style.width = '350px'
+        imageIcon.style.height = '200px'
+        imageIcon.id = 'content'
+        const root = createRoot(imageIcon)
+        root.render(<div>
+            <WordCloud 
+            data={data} 
+            height={200} 
+            width={350}
+            fontSize={()=> 24}
+            fontWeight={()=> 'bold'}
+            onWordClick={(_, b)=> {
+                setWordTarget(b)
+                setClusterTarget(cluster)
+            }}
+            rotate={()=>0}
+            random={() => 0.5}
+            padding={()=> 4}
+            fill={() => colors[Math.floor(Math.random() * colors.length)]} 
+            />
+        </div>)
+        return imageIcon
     }
 
     useEffect(()=>{
@@ -125,45 +143,16 @@ export default function Markers({points}:Props){
             algorithm: new SuperClusterAlgorithm({
                 radius: 700, // Aumente o valor para expandir o range de agrupamento
             }),
-
-            onClusterClick: () => {
-                // popup?.setMap(null)
-                // const listaDePontos = getPointsWithCluster(points, cluster.markers)
-                // const posicaoDoCluster = {lat: cluster.position.lat(), lng: cluster.position.lng()}
-
-                // if(cluster.markers){
-                //     const content = document.createElement("div");
-                //     content.id = "content";
-                    
-                //     const root = createRoot(content)
-
-                //     root.render(<PopupContent listaDePontos={listaDePontos} closePopup={setStatusPopup}/>)
-
-                //     const newPopup = new Popup(
-                //         new google.maps.LatLng(posicaoDoCluster.lat, posicaoDoCluster.lng),
-                //         content
-                //     )
-
-                //     setPopup(newPopup)
-
-                //     newPopup.setMap(map)
-                // }
-            },
-
+            
             renderer: { //Criando novo cluster com ícone personalizado
                 render: ({ position, markers }) => {
                     const listaDePontosDoCluster = getPointsWithCluster(points, markers)
                     const depoimento = setStringDepo(listaDePontosDoCluster)
                     const depoimentoFormatado = getStringFiltered(depoimento)
                     const dataWordCloud = getWordCloudDataWithString(depoimentoFormatado)
-
-                    const imageIcon = document.createElement('div')
-                    imageIcon.style.width = '350px'
-                    imageIcon.style.height = '200px'
-                    imageIcon.id = 'content'
-                    const root = createRoot(imageIcon)
-                    root.render(<IconClusters data={dataWordCloud} points={listaDePontosDoCluster}/>)
-
+                                    
+                    const imageIcon = buildContent(dataWordCloud, {markers, position})
+                    
                     return new google.maps.marker.AdvancedMarkerElement({
                         position,
                         content: imageIcon,
@@ -171,11 +160,17 @@ export default function Markers({points}:Props){
                     });
                 }
             },
+            
+            onClusterClick: () => {},
         })
         clusterer.current?.addMarkers(Object.values(marcadores)) //adicionamos os marcadores novos presentes no novo estado de 'markers'
         //Note que, 'markers' é um objeto, por isso usamos o 'Object.values' para pegar as instancias Marker propriamete dita
         // console.log(clusterer.current.clusters)
+
+
     }, [marcadores])
+
+    
 
     useEffect(()=>{
         if(!statusPopup){
@@ -184,13 +179,36 @@ export default function Markers({points}:Props){
         } 
     }, [statusPopup])
 
+    useEffect(()=> {
+        clusterer.current?.addListener('click', ()=>{
+            const listaDePontos = getPointsWithCluster(points, clusterTarget?.markers)
+            const posicaoDoCluster = {lat: clusterTarget?.position.lat(), lng: clusterTarget?.position.lng()}
+            
+            popup?.setMap(null)
+
+            const content = document.createElement('div')
+            content.id = 'content'
+
+            const root = createRoot(content)
+            root.render(<PopupContent listaDePontos={listaDePontos} closePopup={setStatusPopup} wordTarget={wordTarget}/>)
+
+            const newPopup = new Popup(
+                new google.maps.LatLng(posicaoDoCluster),
+                content
+            )
+            
+            setPopup(newPopup)
+            newPopup.setMap(map)
+        })
+    }, [wordTarget])
+
     const openPopup = (ponto:point) => {
         popup?.setMap(null)
         if(ponto){
             const content = document.createElement("div");
             content.id = "content";
             const root = createRoot(content)
-            root.render(<PopupContent listaDePontos={[ponto]} closePopup={setStatusPopup}/>)
+            root.render(<PopupContent listaDePontos={[ponto]} closePopup={setStatusPopup} wordTarget={wordTarget}/>)
             const newPopup = new Popup(
                 new google.maps.LatLng(ponto.lat, ponto.lng),
                 content
@@ -200,21 +218,24 @@ export default function Markers({points}:Props){
         }
     }
 
+    // Se o ponto estiver sozinho no cluster, retorna ele com a nuvem de palavras, se não, retorna ele sem um icone personalizado
     return <>
     {
-        points.map(point => <AdvancedMarker 
-            position={point} 
-            key={point.key}
-            ref={marker => {
-                // A função callback do atributo 'ref' recebe como argumento o própro elemento que o 'ref' está referenciando. É uma forma de acessá-lo em outra função diretamente
-                setMarkerRef(marker, point.key)}}
-            onClick={() => openPopup(point)}> 
-
-                <span style={{
-                    width: '50rem',
-                    height: '50rem'
+        points.map(point => <AdvancedMarker
+        position={point} 
+        key={point.key}
+        ref={marker => {
+            // A função callback do atributo 'ref' recebe como argumento o própro elemento que o 'ref' está referenciando. É uma forma de acessá-lo em outra função diretamente
+            setMarkerRef(marker, point.key)}}
+        onClick={() => {
+            openPopup(point)
+        }}
+        > 
+        <span style={{
+                    width: '300px',
+                    height: '150px'
                 }}>
-                    <img src={`https://quickchart.io/wordcloud?text=${point.depo}&fontScale=16&maxNumWords=20&fontWeight=bold&fontFamily=sanf&colors=["000"]&padding=8&case=upper&rotation=0&width=330&height=180`} alt="Depoimento" />
+                    <img src={`https://quickchart.io/wordcloud?text=${point.depo}&fontScale=16&maxNumWords=20&fontWeight=bold&fontFamily=sanf&colors=["000"]&padding=8&case=upper&rotation=0&width=300&height=150`} alt="Depoimento" />
                 </span>
         </AdvancedMarker>)
     }
