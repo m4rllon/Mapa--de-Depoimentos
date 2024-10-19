@@ -1,4 +1,6 @@
 .contianer {
+    position: absolute;
+    top: 200;
     background-color: #FEF1EE;
     width: 35vw;
     padding: 1rem;
