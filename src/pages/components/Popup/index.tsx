@@ -5,9 +5,10 @@ import styles from './styles.module.css'
 interface props {
   listaDePontos: School[];
   closePopup: React.Dispatch<React.SetStateAction<boolean>>
+  wordTarget: {text:string, value:number, x:number, y:number} | null
 }
 
-export const PopupContent = ({listaDePontos, closePopup}:props) => {
+export const PopupContent = ({listaDePontos, closePopup, wordTarget}:props) => {
   const [index, setIndex] = useState(0)
 
   const antes = () => {
@@ -25,7 +26,10 @@ export const PopupContent = ({listaDePontos, closePopup}:props) => {
   }
 
   return <div className={styles.contianer}>
-    <button className={styles.closeButton} onClick={() => closePopup( prev => !prev)}>X</button>
+    <span className={styles.titleContainer}>
+      <h1>A palavra "{wordTarget?.text}" apareceu {wordTarget?.value} vezes!</h1>  
+      <button className={styles.closeButton} onClick={() => closePopup( prev => !prev)}>X</button>
+    </span>
     <span className={styles.titleContainer}>
       <h1 className={styles.textAspas}>"</h1>
       <h1 className={styles.textDepo}>{listaDePontos[index].depo}</h1>
